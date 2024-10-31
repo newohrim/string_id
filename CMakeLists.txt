@@ -62,7 +62,7 @@ target_link_libraries(foonathan_string_id_example PUBLIC foonathan_string_id)
 
 set(targets foonathan_string_id foonathan_string_id_example CACHE INTERNAL "")
 
-set_target_properties(${targets} PROPERTIES CXX_STANDARD 11)
+set_target_properties(${targets} PROPERTIES CXX_STANDARD 20)
 
 foreach(target ${targets})
     target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
