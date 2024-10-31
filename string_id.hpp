@@ -11,6 +11,7 @@
 #include "basic_database.hpp"
 #include "config.hpp"
 #include "hash.hpp"
+#include "error.hpp"
 
 namespace foonathan { namespace string_id
 {
@@ -36,14 +37,17 @@ namespace foonathan { namespace string_id
     /// \brief The string identifier class.
     /// \detail This is a lightweight class to store strings.<br>
     /// It only stores a hash of the string allowing fast copying and comparisons.
+    template<typename DATABASE_T>
     class string_id
     {
     public:
+        using DATABASE_TYPE = DATABASE_T;
+
         //=== constructors ===//
         /// \brief Creates a new id by hashing a given string.
         /// \detail It will insert the string into the given \ref database which will copy it.<br>
         /// If it encounters a collision, the \ref collision_handler will be called.
-        string_id(string_info str, basic_database &db);
+        string_id(string_info str);
         
         /// \brief Creates a new id with a given prefix.
         /// \detail The new id will be inserted into the same database as the prefix.<br>
@@ -54,11 +58,9 @@ namespace foonathan { namespace string_id
         /// \brief Sames as other constructor versions but instead of calling the \ref collision_handler,
         /// they set the output parameter to the appropriate status.
         /// \detail This also allows information whether or not the string was already stored inside the database.
-        string_id(string_info str, basic_database &db,
-                 basic_database::insert_status &status);
+        string_id(string_info str, typename DATABASE_T::insert_status& status);
                  
-        string_id(const string_id &prefix, string_info str,
-                  basic_database::insert_status &status);
+        string_id(const string_id& prefix, string_info str, typename DATABASE_T::insert_status& status);
         /// @}
         
         //=== accessors ===//
@@ -69,9 +71,9 @@ namespace foonathan { namespace string_id
         }
         
         /// \brief Returns a reference to the database.
-        basic_database& database() const FOONATHAN_NOEXCEPT
+        DATABASE_T& database() const FOONATHAN_NOEXCEPT
         {
-            return *db_;
+            return db_;
         }
         
         /// \brief Returns the string value itself.
@@ -85,7 +87,7 @@ namespace foonathan { namespace string_id
         /// A hashed value is equal to a string id if it is the same value.
         friend bool operator==(string_id a, string_id b) FOONATHAN_NOEXCEPT
         {
-            return a.db_ == b.db_ && a.id_ == b.id_;
+            return a.id_ == b.id_;
         }
         
         friend bool operator==(hash_type a, const string_id &b) FOONATHAN_NOEXCEPT
@@ -116,8 +118,54 @@ namespace foonathan { namespace string_id
         
     private:
         hash_type id_;
-        basic_database *db_;
+        static inline DATABASE_T db_;
     };
+
+    template<typename DATABASE_T>
+    void handle_collision(DATABASE_T& db, hash_type hash, const char* str)
+    {
+        auto handler = get_collision_handler();
+        auto second  = db.lookup(hash);
+        handler(hash, str, second);
+    }
+
+    template<typename DATABASE_T>
+    string_id<DATABASE_T>::string_id(string_info str)
+    {
+        typename DATABASE_T::insert_status status;
+        *this = string_id(str, status);
+        if (!status)
+            handle_collision(db_, id_, str.string);
+    }
+
+    template <typename DATABASE_T>
+    string_id<DATABASE_T>::string_id(string_info str, DATABASE_T::insert_status& status)
+        : id_(detail::sid_hash(str.string))
+    {
+        status = db_.insert(id_, str.string, str.length);
+    }
+
+    template <typename DATABASE_T>
+    string_id<DATABASE_T>::string_id(const string_id& prefix, string_info str)
+    {
+        typename DATABASE_T::insert_status status;
+        *this = string_id(prefix, str, status);
+        if (!status)
+            handle_collision(db_, id_, str.string);
+    }
+
+    template <typename DATABASE_T>
+    string_id<DATABASE_T>::string_id(const string_id& prefix, string_info str, DATABASE_T::insert_status& status)
+        : id_(detail::sid_hash(str.string, prefix.hash_code()))
+    {
+        status = db_.insert_prefix(id_, prefix.hash_code(), str.string, str.length);
+    }
+
+    template <typename DATABASE_T>
+    const char* string_id<DATABASE_T>::string() const FOONATHAN_NOEXCEPT
+    {
+        return db_.lookup(id_);
+    }
     
     namespace literals
     {
@@ -142,10 +190,10 @@ namespace foonathan { namespace string_id
 namespace std
 {
     /// \brief \c std::hash support for \ref string_id.
-    template <>
-    struct hash<foonathan::string_id::string_id>
+    template <typename DATABASE_T>
+    struct hash<foonathan::string_id::string_id<DATABASE_T>>
     {
-        typedef foonathan::string_id::string_id argument_type;
+        typedef foonathan::string_id::string_id<DATABASE_T> argument_type;
         typedef size_t result_type;        
  
         result_type operator()(const argument_type &arg) const FOONATHAN_NOEXCEPT

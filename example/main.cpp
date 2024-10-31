@@ -19,19 +19,16 @@ int main() try
 {
     // this allows using the literal
     using namespace sid::literals;
-    
-    // create database to store the strings in
-    // it must stay valid as long as each string_id using it
-    sid::default_database database;
+    using Strid = sid::string_id<sid::default_database>;
     
     //=== string_id usage ===//
     // create an id
-    sid::string_id sid("Test0815", database);
+    Strid sid("Test0815");
     std::cout << "Hash code " << sid.hash_code() << " belongs to string \"" << sid.string() << "\"\n";
     // Output (Database supports retrieving): Hash code 16741300784925887095 belongs to string "Test0815"
     // Output (Database doesn't): Hash code 16741300784925887095 belongs to string "string_id database disabled"
     
-    sid::string_id a("Hello", database), b("World", database);
+    Strid a("Hello"), b("World");
     
     // compare two ids
     std::cout << std::boolalpha << (a == b) << '\n';
@@ -63,16 +60,16 @@ int main() try
     
     //=== generation ===//
     // the prefix for all generated ids
-    sid::string_id prefix("entity-", database);
+    Strid prefix("entity-");
     try
     {
         // a generator type appending 8 random characters to the prefix
         // it uses the std::mt19937 generator for the actual generation
-        typedef sid::random_generator<std::mt19937, 8> generator_t;
+        typedef sid::random_generator<Strid, std::mt19937, 8> generator_t;
         // create a generator, seed the random number generator with the current time
         generator_t generator(prefix, std::mt19937(std::int_fast32_t(std::time(nullptr))));
         
-        std::vector<sid::string_id> ids;
+        std::vector<Strid> ids;
         for (auto i = 0; i != 10; ++i)
             // generate new identifier
             // it is guaranteed unique and will be stored in the database of the prefix
@@ -92,12 +89,12 @@ int main() try
     try
     {
         // a generator appending an increasing number to the prefix
-        typedef sid::counter_generator generator_t;
+        typedef sid::counter_generator<Strid> generator_t;
         
         // create a generator starting with 0, each number will be 4 digits long
         generator_t generator(prefix, 0, 4);
         
-        std::vector<sid::string_id> ids;
+        std::vector<Strid> ids;
         for (auto i = 0; i != 10; ++i)
             // generate new identifier
             // it is guaranteed unique and will be stored in the database of the prefix

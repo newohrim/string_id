@@ -53,7 +53,6 @@ set(src basic_database.hpp
         generator.cpp
         generator.hpp
         hash.hpp
-        string_id.cpp
         string_id.hpp
     CACHE INTERNAL "")
 
