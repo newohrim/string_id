@@ -21,6 +21,7 @@ CHECK_CXX_SOURCE_COMPILES("struct base {virtual void foo() {}};
                            struct derived : base {void foo() override {}};
                            int main(){}" comp_override)
 
+option(STRID_DEBUG "whether or not cache string pointers inside string id objects" ON)
 option(FOONATHAN_STRING_ID_DATABASE "enable or disable database" ON)
 option(FOONATHAN_STRING_ID_MULTITHREADED "enable or disable a thread safe database" ON)
 option(FOONATHAN_IMPL_HAS_CONSTEXPR "whether or not constexpr is supported" ${comp_constexpr})

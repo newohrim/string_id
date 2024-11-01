@@ -119,6 +119,11 @@ namespace foonathan { namespace string_id
         
     private:
         STORAGE_T id_;
+    #if STRID_DEBUG
+        // TODO: disable any string storage inside nodes in database when STRID_DEBUG is undefined
+        const char* dbgStr;
+    #endif
+
         static inline DATABASE_T db_;
     };
 
@@ -144,6 +149,10 @@ namespace foonathan { namespace string_id
     {
         detail::sid_hash(str.string, id_);
         status = db_.insert(id_, str.string, str.length);
+    #if STRID_DEBUG
+        if (status != insert_status::collision)
+            dbgStr = string();
+    #endif
     }
 
     template <typename DATABASE_T, typename STORAGE_T>
@@ -160,6 +169,10 @@ namespace foonathan { namespace string_id
     {
         detail::sid_hash(str.string, id_, prefix.hash_code());
         status = db_.insert_prefix(id_, prefix.hash_code(), str.string, str.length);
+    #if STRID_DEBUG
+        if (status != insert_status::collision)
+            dbgStr = string();
+    #endif
     }
 
     template <typename DATABASE_T, typename STORAGE_T>

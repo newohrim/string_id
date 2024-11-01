@@ -21,6 +21,8 @@
 /// \detail This is \c true by default, change it via CMake option \c FOONATHAN_STRING_ID_MULTITHREADED.
 #cmakedefine01 FOONATHAN_STRING_ID_MULTITHREADED
 
+#cmakedefine01 STRID_DEBUG
+
 //=== compatibility ===//
 #cmakedefine01 FOONATHAN_IMPL_HAS_NOEXCEPT
 #cmakedefine01 FOONATHAN_IMPL_HAS_CONSTEXPR
