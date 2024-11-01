@@ -47,7 +47,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.hpp.in"
 set(src basic_database.hpp
         config.hpp
         database.hpp
-        database.cpp
         error.cpp
         error.hpp
         generator.cpp

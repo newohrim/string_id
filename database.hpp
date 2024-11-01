@@ -8,6 +8,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "basic_database.hpp"
 #include "config.hpp"
@@ -113,7 +114,7 @@ namespace foonathan { namespace string_id
             {
                 void* mem  = this;
                 auto  dest = static_cast<char*>(mem) + sizeof(node);
-                std::strncpy(dest, str, length);
+                strncpy(dest, str, length);
                 dest[length] = 0;
             }
 
@@ -125,9 +126,9 @@ namespace foonathan { namespace string_id
             {
                 void* mem  = this;
                 auto  dest = static_cast<char*>(mem) + sizeof(node);
-                std::strncpy(dest, prefix, length_prefix);
+                strncpy(dest, prefix, length_prefix);
                 dest += length_prefix;
-                std::strncpy(dest, str, length_string);
+                strncpy(dest, str, length_string);
                 dest[length_string] = 0;
             }
 
@@ -147,16 +148,18 @@ namespace foonathan { namespace string_id
 
             node* cur;
 
-            insert_pos_t(node*& prev, node* next) FOONATHAN_NOEXCEPT : exists(false),
-                                                                       prev(prev),
-                                                                       next(next),
-                                                                       cur(nullptr)
+            insert_pos_t(node*& prev, node* next) FOONATHAN_NOEXCEPT 
+                : exists(false),
+                  prev(prev),
+                  next(next),
+                  cur(nullptr)
             {}
 
-            insert_pos_t(node* cur) FOONATHAN_NOEXCEPT : exists(true),
-                                                         prev(this->cur),
-                                                         next(nullptr),
-                                                         cur(cur)
+            insert_pos_t(node* cur) FOONATHAN_NOEXCEPT 
+                : exists(true),
+                  prev(this->cur),
+                  next(nullptr),
+                  cur(cur)
             {}
         };
 
@@ -169,6 +172,10 @@ namespace foonathan { namespace string_id
             while (cur)
             {
                 auto next = cur->next;
+                cur->~node();
+                // researched: no memory leak is expected here
+                // https://stackoverflow.com/questions/39648970/does-operator-delete-void-know-the-size-of-memory-allocated-with-operat
+                // https://stackoverflow.com/questions/6783993/placement-new-and-delete
                 ::operator delete(cur);
                 cur = next;
             }
@@ -196,8 +203,7 @@ namespace foonathan { namespace string_id
                            ? insert_status::old_string
                            : insert_status::collision;
             auto mem = ::operator new(sizeof(node) + prefix_node->length + length + 1);
-            auto n   = ::new (mem)
-                node(prefix_node->get_str(), prefix_node->length, str, length, hash, pos.next);
+            auto n   = ::new (mem) node(prefix_node->get_str(), prefix_node->length, str, length, hash, pos.next);
             pos.prev = n;
             return insert_status::new_string;
         }
@@ -284,8 +290,7 @@ namespace foonathan { namespace string_id
     {
         if (no_items_ + 1 >= next_resize_)
             rehash();
-        auto status = buckets_[hash % no_buckets_].insert_prefix(buckets_[prefix % no_buckets_],
-                                                                 prefix, hash, str, length);
+        auto status = buckets_[hash % no_buckets_].insert_prefix(buckets_[prefix % no_buckets_], prefix, hash, str, length);
         if (status == insert_status::new_string)
             ++no_items_;
         return status;
