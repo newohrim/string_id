@@ -7,10 +7,10 @@
 #include <random> // std::mt19937
 #include <vector>
 
-#include "../database.hpp" // for the databases
-#include "../error.hpp" // for error handling
-#include "../generator.hpp" // for the generator classes
-#include "../string_id.hpp" // for the string_id
+#include "database.hpp" // for the databases
+#include "error.hpp" // for error handling
+#include "generator.hpp" // for the generator classes
+#include "string_id.hpp" // for the string_id
 
 // namespace alias
 namespace sid = foonathan::string_id;

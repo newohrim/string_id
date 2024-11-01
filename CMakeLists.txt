@@ -42,22 +42,29 @@ option(FOONATHAN_STRING_ID_ATOMIC_HANDLER "whether or not handler functions are 
 set(version_major 2 CACHE INTERNAL "")
 set(version_minor 0 CACHE INTERNAL "")
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.hpp.in"
-	           "${CMAKE_CURRENT_BINARY_DIR}/config_impl.hpp")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in"
+	           "${CMAKE_CURRENT_BINARY_DIR}/include/config_impl.hpp")
+			   
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/)
 
-set(src basic_database.hpp
-        config.hpp
-        database.hpp
-        error.cpp
-        error.hpp
-        generator.cpp
-        generator.hpp
-        hash.hpp
-        string_id.hpp
+set(HEADER_FILES 
+    include/basic_database.hpp
+    include/config.hpp
+    include/database.hpp
+	include/error.hpp
+	include/generator.hpp
+    include/hash.hpp
+    include/string_id.hpp)
+set(src
+	${HEADER_FILES}
+    source/error.cpp
+    source/generator.cpp
     CACHE INTERNAL "")
 
 add_library(foonathan_string_id ${src})
+target_include_directories(foonathan_string_id PUBLIC "include")
 add_executable(foonathan_string_id_example example/main.cpp)
+target_include_directories(foonathan_string_id_example PUBLIC "include")
 target_link_libraries(foonathan_string_id_example PUBLIC foonathan_string_id)
 
 set(targets foonathan_string_id foonathan_string_id_example CACHE INTERNAL "")
