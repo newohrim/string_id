@@ -18,15 +18,15 @@ namespace foonathan { namespace string_id
         template<typename STRID_T>
         bool handle_generation_error(std::size_t counter, const char* name, const STRID_T& result)
         {
-            return get_generation_error_handler()(counter, name, result.hash_code(), result.string());
+            return get_generation_error_handler<typename STRID_T::STORAGE_TYPE>()(counter, name, result.hash_code(), result.string());
         }
         
         template <typename STRID_T, typename Generator>
         STRID_T try_generate(const char* name, Generator generator, const STRID_T& prefix)
         {
-            typename STRID_T::DATABASE_TYPE::insert_status status;
+            insert_status status;
             auto result = STRID_T(prefix, generator(), status);
-            for (std::size_t counter = 1; status != STRID_T::DATABASE_TYPE::new_string && handle_generation_error(counter, name, result); ++counter)
+            for (std::size_t counter = 1; status != insert_status::new_string && handle_generation_error(counter, name, result); ++counter)
                 result = STRID_T(prefix, generator(), status);
             return result;
         }

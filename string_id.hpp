@@ -37,11 +37,12 @@ namespace foonathan { namespace string_id
     /// \brief The string identifier class.
     /// \detail This is a lightweight class to store strings.<br>
     /// It only stores a hash of the string allowing fast copying and comparisons.
-    template<typename DATABASE_T>
+    template<typename DATABASE_T, typename STORAGE_T = uint32_t>
     class string_id
     {
     public:
         using DATABASE_TYPE = DATABASE_T;
+        using STORAGE_TYPE = STORAGE_T;
 
         //=== constructors ===//
         /// \brief Creates a new id by hashing a given string.
@@ -58,14 +59,14 @@ namespace foonathan { namespace string_id
         /// \brief Sames as other constructor versions but instead of calling the \ref collision_handler,
         /// they set the output parameter to the appropriate status.
         /// \detail This also allows information whether or not the string was already stored inside the database.
-        string_id(string_info str, typename DATABASE_T::insert_status& status);
+        string_id(string_info str, insert_status& status);
                  
-        string_id(const string_id& prefix, string_info str, typename DATABASE_T::insert_status& status);
+        string_id(const string_id& prefix, string_info str, insert_status& status);
         /// @}
         
         //=== accessors ===//
         /// \brief Returns the hashed value of the string.
-        hash_type hash_code() const FOONATHAN_NOEXCEPT
+        STORAGE_T hash_code() const FOONATHAN_NOEXCEPT
         {
             return id_;
         }
@@ -90,12 +91,12 @@ namespace foonathan { namespace string_id
             return a.id_ == b.id_;
         }
         
-        friend bool operator==(hash_type a, const string_id &b) FOONATHAN_NOEXCEPT
+        friend bool operator==(STORAGE_T a, const string_id& b) FOONATHAN_NOEXCEPT
         {
             return a == b.id_;
         }
         
-        friend bool operator==(const string_id &a, hash_type b) FOONATHAN_NOEXCEPT
+        friend bool operator==(const string_id& a, STORAGE_T b) FOONATHAN_NOEXCEPT
         {
             return a.id_ == b;
         }
@@ -105,64 +106,64 @@ namespace foonathan { namespace string_id
             return !(a == b);
         }
         
-        friend bool operator!=(hash_type a, const string_id &b) FOONATHAN_NOEXCEPT
+        friend bool operator!=(STORAGE_T a, const string_id& b) FOONATHAN_NOEXCEPT
         {
             return !(a == b);
         }
         
-        friend bool operator!=(const string_id &a, hash_type b) FOONATHAN_NOEXCEPT
+        friend bool operator!=(const string_id& a, STORAGE_T b) FOONATHAN_NOEXCEPT
         {
             return !(a == b);
         }
         /// @}
         
     private:
-        hash_type id_;
+        STORAGE_T id_;
         static inline DATABASE_T db_;
     };
 
-    template<typename DATABASE_T>
-    void handle_collision(DATABASE_T& db, hash_type hash, const char* str)
+    template<typename DATABASE_T, typename STORAGE_T>
+    void handle_collision(DATABASE_T& db, STORAGE_T hash, const char* str)
     {
-        auto handler = get_collision_handler();
+        auto handler = get_collision_handler<STORAGE_T>();
         auto second  = db.lookup(hash);
         handler(hash, str, second);
     }
 
-    template<typename DATABASE_T>
-    string_id<DATABASE_T>::string_id(string_info str)
+    template<typename DATABASE_T, typename STORAGE_T>
+    string_id<DATABASE_T, STORAGE_T>::string_id(string_info str)
     {
-        typename DATABASE_T::insert_status status;
+        insert_status status;
         *this = string_id(str, status);
-        if (!status)
+        if (status == insert_status::collision)
             handle_collision(db_, id_, str.string);
     }
 
-    template <typename DATABASE_T>
-    string_id<DATABASE_T>::string_id(string_info str, DATABASE_T::insert_status& status)
-        : id_(detail::sid_hash(str.string))
+    template <typename DATABASE_T, typename STORAGE_T>
+    string_id<DATABASE_T, STORAGE_T>::string_id(string_info str, insert_status& status)
     {
+        detail::sid_hash(str.string, id_);
         status = db_.insert(id_, str.string, str.length);
     }
 
-    template <typename DATABASE_T>
-    string_id<DATABASE_T>::string_id(const string_id& prefix, string_info str)
+    template <typename DATABASE_T, typename STORAGE_T>
+    string_id<DATABASE_T, STORAGE_T>::string_id(const string_id& prefix, string_info str)
     {
-        typename DATABASE_T::insert_status status;
+        insert_status status;
         *this = string_id(prefix, str, status);
-        if (!status)
+        if (status == insert_status::collision)
             handle_collision(db_, id_, str.string);
     }
 
-    template <typename DATABASE_T>
-    string_id<DATABASE_T>::string_id(const string_id& prefix, string_info str, DATABASE_T::insert_status& status)
-        : id_(detail::sid_hash(str.string, prefix.hash_code()))
+    template <typename DATABASE_T, typename STORAGE_T>
+    string_id<DATABASE_T, STORAGE_T>::string_id(const string_id& prefix, string_info str, insert_status& status)
     {
+        detail::sid_hash(str.string, id_, prefix.hash_code());
         status = db_.insert_prefix(id_, prefix.hash_code(), str.string, str.length);
     }
 
-    template <typename DATABASE_T>
-    const char* string_id<DATABASE_T>::string() const FOONATHAN_NOEXCEPT
+    template <typename DATABASE_T, typename STORAGE_T>
+    const char* string_id<DATABASE_T, STORAGE_T>::string() const FOONATHAN_NOEXCEPT
     {
         return db_.lookup(id_);
     }
@@ -170,7 +171,8 @@ namespace foonathan { namespace string_id
     namespace literals
     {
         /// \brief Same as the literal version, additional replacement if not supported.
-        FOONATHAN_CONSTEXPR_FNC hash_type id(const char *str)
+        template<typename STORAGE_T>
+        FOONATHAN_CONSTEXPR_FNC STORAGE_T id(const char* str)
         {
             return detail::sid_hash(str);
         }
@@ -179,9 +181,18 @@ namespace foonathan { namespace string_id
         /// \detail Since this function does not check for collisions only use it to compare a \ref string_id.<br>
         /// It is also useful in places where a compile-time constant is needed.
     #if FOONATHAN_STRING_ID_HAS_LITERAL
-        FOONATHAN_CONSTEXPR_FNC hash_type operator""_id(const char *str, std::size_t)
+        FOONATHAN_CONSTEXPR_FNC uint32_t operator""_id(const char* str, std::size_t)
         {
-            return detail::sid_hash(str);
+            uint32_t res;
+            detail::sid_hash(str, res);
+            return res;
+        }
+
+        FOONATHAN_CONSTEXPR_FNC uint64_t operator""_id64(const char* str, std::size_t)
+        {
+            uint64_t res;
+            detail::sid_hash(str, res);
+            return res;
         }
     #endif
     } // namespace literals

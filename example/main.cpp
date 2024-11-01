@@ -14,12 +14,12 @@
 
 // namespace alias
 namespace sid = foonathan::string_id;
+using Strid = sid::string_id<sid::default_database, uint32_t>;
 
 int main() try
 {
     // this allows using the literal
     using namespace sid::literals;
-    using Strid = sid::string_id<sid::default_database>;
     
     //=== string_id usage ===//
     // create an id
@@ -111,7 +111,7 @@ int main() try
         std::cerr << "[ERROR] " << ex.what() << '\n';
     }
 }
-catch (sid::collision_error &ex)
+catch (sid::collision_error<Strid::STORAGE_TYPE> &ex)
 {
     // two different strings are resulting in the same hash value (very unlikely)
     std::cerr << "[ERROR] " << ex.what() << '\n';
