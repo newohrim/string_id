@@ -44,6 +44,8 @@ namespace foonathan { namespace string_id
         using DATABASE_TYPE = DATABASE_T;
         using STORAGE_TYPE = STORAGE_T;
 
+        string_id() : id_(0) {};
+
         //=== constructors ===//
         /// \brief Creates a new id by hashing a given string.
         /// \detail It will insert the string into the given \ref database which will copy it.<br>
@@ -114,6 +116,11 @@ namespace foonathan { namespace string_id
         friend bool operator!=(const string_id& a, STORAGE_T b) FOONATHAN_NOEXCEPT
         {
             return !(a == b);
+        }
+
+        friend bool operator<(const string_id& a, const string_id& b) FOONATHAN_NOEXCEPT
+        {
+            return a.hash_code() < b.hash_code();
         }
         /// @}
         

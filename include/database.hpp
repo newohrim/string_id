@@ -299,6 +299,9 @@ namespace foonathan { namespace string_id
     template <typename STORAGE_T>
     const char* map_database<STORAGE_T>::lookup(STORAGE_T hash) const FOONATHAN_NOEXCEPT
     {
+        if (hash == 0) {
+            return "<invalid>";
+        }
         return buckets_[hash % no_buckets_].lookup(hash);
     }
 
